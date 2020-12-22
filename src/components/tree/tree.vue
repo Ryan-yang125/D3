@@ -104,7 +104,7 @@ export default {
         .attr('style', 'background: white')
         .attr('width', 700)
         .attr('height', 700);
-      (() => {
+      /*(() => {
         this.treeRoot = d3h.hierarchy(this.data);
         // 添加g标签
         this.g = this.svg
@@ -162,8 +162,8 @@ export default {
               .x((d) => d.y)
               .y((d) => d.x)
           );
-      })();
-
+      })();*/
+      (() => {})();
       // 添加图表标题
       this.title = this.svg
         .append('g')
