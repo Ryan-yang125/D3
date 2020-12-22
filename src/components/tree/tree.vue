@@ -49,14 +49,11 @@ export default {
       },
     };
   },
-  // https://cn.vuejs.org/v2/api/#mounted
   mounted() {
     // 这里会在实例被挂载后调用
     // 初始化图表
     this.initTree();
   },
-  // https://cn.vuejs.org/v2/api/#computed
-  // https://cn.vuejs.org/v2/guide/computed.html#%E5%9F%BA%E7%A1%80%E4%BE%8B%E5%AD%90
   computed: {
     // 这里是一些计算属性，当其中涉及的值发生变化时，计算属性会重新计算，返回新的值
     ascendingData() {
@@ -68,7 +65,6 @@ export default {
       return this.sortKeyDescending(this.originData, 'value');
     },
   },
-  // https://cn.vuejs.org/v2/api/#watch
   watch: {
     // watch的作用可以监控一个值的变换，并调用因为变化需要执行的方法。可以通过watch动态改变关联的状态。
     // 这里是一些可被修改的配置项，例如图表标题内容、标题是否显示等
@@ -87,13 +83,10 @@ export default {
         }
       },
     },
-    // 请根据组件需要补充...
   },
-  // https://cn.vuejs.org/v2/api/#methods
   methods: {
     initTree() {
       console.log(this.options);
-      this.treeRoot = d3h.hierarchy(this.data);
       // this.treeRoot = d3h.hierarchy(originData);
       // 指定图表的宽高
       this.width = 700 - this.chartPadding.right - this.chartPadding.left - 180;
@@ -111,8 +104,8 @@ export default {
         .attr('style', 'background: white')
         .attr('width', 700)
         .attr('height', 700);
-
       (() => {
+        this.treeRoot = d3h.hierarchy(this.data);
         // 添加g标签
         this.g = this.svg
           .append('g')
