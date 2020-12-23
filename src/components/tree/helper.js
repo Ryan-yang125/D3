@@ -1,7 +1,7 @@
 /*
  * @Author: Yangrui
  * @Date: 2020-12-22 22:40:17
- * @LastEditTime: 2020-12-22 22:40:50
+ * @LastEditTime: 2020-12-23 08:14:04
  * @LastEditors: Please set LastEditors
  * @Description: A zoomable, panable, toggleble tree
  * @FilePath: /code/src/components/tree/helper.js
@@ -13,7 +13,7 @@ treeJSON = d3.json('flare-2.json', function(error, treeData) {
   let maxLabelLength = 0;
   // panning letiables
   let panSpeed = 20;
-  let panBoundary = 20; // Within 20px from edges will pan when dragging.
+  // let panBoundary = 20; // Within 20px from edges will pan when dragging.
   // Misc. letiables
   let i = 0;
   let duration = 750;
@@ -31,6 +31,7 @@ treeJSON = d3.json('flare-2.json', function(error, treeData) {
   });
 
   // DFS to get totalNodes and maxLabelLength
+  //TODO can be moved out
   const visit = (parent) => {
     if (!parent) return;
     totalNodes++;
@@ -46,14 +47,16 @@ treeJSON = d3.json('flare-2.json', function(error, treeData) {
 
   // sort the tree according to the node names
   // incase the json file is unarranged
+  //TODO can be moved out
   const sortTree = (tree) => {
-    tree.sort(function(a, b) {
+    tree.sort((a, b) => {
       return b.name.toLowerCase() < a.name.toLowerCase() ? 1 : -1;
     });
   };
   sortTree(tree);
   const pan = (domNode, direction) => {
     let speed = panSpeed;
+    //TODO can be Promised()
     if (panTimer) {
       clearTimeout(panTimer);
       let translateCoords = d3.transform(svgGroup.attr('transform'));
@@ -88,7 +91,7 @@ treeJSON = d3.json('flare-2.json', function(error, treeData) {
       zoomListener.translate([translateX, translateY]);
       panTimer = setTimeout(() => {
         pan(domNode, speed, direction);
-      }, 500);
+      }, 100);
     }
   };
   const zoom = () => {
