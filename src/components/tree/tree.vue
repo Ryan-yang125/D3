@@ -96,26 +96,30 @@ export default {
       this.height = 700 - this.chartPadding.bottom - this.chartPadding.top - 80;
 
       // 选择svg容器
-      this.basesvg = d3
+      d3.select('#tree-container')
+        .style('width', '960rem')
+        .style('height', '960rem');
+
+      // 添加svg
+      this.svg = d3
         .select('#tree-container')
         .append('svg')
-        .style('width', 700)
-        .style('height', 700)
-        .attr('style', 'background: white');
-      // 添加 nodes and links svg
-      this.svg = this.basesvg.append('g').call(
+        .attr('style', 'background: #eee')
+        .attr('width', '920rem')
+        .attr('height', '920rem');
+      this.svg.call(
         d3.zoom().on('zoom', () => {
           this.svg.attr('transform', d3.event.transform);
         })
       );
       // 添加links svg
-      const gLink = this.svg
+      this.gLink = this.svg
         .append('g')
         .attr('fill', 'none')
         .attr('stroke', '#555')
         .attr('stroke-opacity', 0.4)
         .attr('stroke-width', 1.5);
-      // 添加控制节点的svgGroups
+      // 添加nodes svg
       this.svgGroup = this.svg.append('g');
       // 初始化tree
       this.tree = d3h.tree();
@@ -249,7 +253,9 @@ export default {
         //   );
 
         // Enter any new links at the parent's previous position.
-        const link = gLink.selectAll('path').data(links, (d) => d.target.id);
+        const link = this.gLink
+          .selectAll('path')
+          .data(links, (d) => d.target.id);
         const linkEnter = link
           .enter()
           .append('path')
