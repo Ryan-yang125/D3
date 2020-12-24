@@ -24,6 +24,7 @@ export default {
       width: 460,
       height: 460,
       chartPadding: { top: 80, right: 80, bottom: 80, left: 80 },
+      margin: { top: 10, right: 120, bottom: 10, left: 40 },
       data: {
         name: 'A1',
         children: [
@@ -90,23 +91,22 @@ export default {
   methods: {
     initTree() {
       console.log(this.options);
-      // this.treeRoot = d3h.hierarchy(originData);
       // 指定图表的宽高
       this.width = 700 - this.chartPadding.right - this.chartPadding.left - 180;
       this.height = 700 - this.chartPadding.bottom - this.chartPadding.top - 80;
 
       // 选择svg容器
       d3.select('#tree-container')
-        .style('width', '960rem')
-        .style('height', '960rem');
+        .style('width', '960px')
+        .style('height', '960px');
 
-      // 添加svg
+      // 添加base svg
       this.svg = d3
         .select('#tree-container')
         .append('svg')
-        .attr('style', 'background: #eee')
-        .attr('width', '920rem')
-        .attr('height', '920rem');
+        .attr('style', 'background: white')
+        .attr('width', 720)
+        .attr('height', 720);
       this.svg.call(
         d3.zoom().on('zoom', () => {
           this.svg.attr('transform', d3.event.transform);
@@ -120,15 +120,18 @@ export default {
         .attr('stroke-opacity', 0.4)
         .attr('stroke-width', 1.5);
       // 添加nodes svg
-      this.svgGroup = this.svg.append('g');
+      this.gNode = this.svg.append('g');
       // 初始化tree
       this.tree = d3h.tree();
       this.tree.size([this.width, this.height]);
-      this.index = 0;
-      // load json file
+      // load data
       this.treeRoot = d3h.hierarchy(this.data);
       this.treeRoot.x0 = this.height / 2;
       this.treeRoot.y0 = 0;
+      this.treeRoot.descendants().forEach((d, i) => {
+        d.id = i;
+        d._children = d.children;
+      });
       this.tree(this.treeRoot);
 
       const linkH = d3
@@ -142,120 +145,102 @@ export default {
        */
 
       const update = (source) => {
-        // Compute the new height,
-        // function counts total children of root node and sets tree height accordingly.
-        // This prevents the layout looking squashed
-        // when new nodes are made visible or looking sparse when nodes are removed
-        // This makes the layout more consistent.
-        const levelWidth = [1];
-        // BFS to get tree level and counts of nodes in each level
-        const childCount = (level, n) => {
-          if (n.children && n.children.length > 0) {
-            if (levelWidth.length <= level + 1) levelWidth.push(0);
-            levelWidth[level + 1] += n.children.length;
-            n.children.forEach((d) => {
-              childCount(level + 1, d);
-            });
-          }
-        };
-        childCount(0, this.treeRoot);
-        // get new Height of tree by max-counts in a level of the tree
-        const newHeight = d3.max(levelWidth) * 25; // 25 pixels per line
-        this.tree.size([newHeight, this.width]);
-
-        // Compute the new tree layout.
+        const duration = d3.event && d3.event.altKey ? 2500 : 250;
         const nodes = this.treeRoot.descendants().reverse();
         const links = this.treeRoot.links();
+        // Compute the new tree layout.
+        let left = this.treeRoot;
+        let right = this.treeRoot;
+        this.treeRoot.eachBefore((node) => {
+          if (node.x < left.x) left = node;
+          if (node.x > right.x) right = node;
+        });
+        const height = right.x - left.x + this.margin.top + this.margin.bottom;
+        // define transition
+        // TODO transition
+        const transition = this.svg
+          .transition()
+          .duration(duration)
+          .attr('viewBox', [
+            -this.margin.left,
+            left.x - this.margin.top,
+            this.width,
+            height,
+          ])
+          .tween(
+            'resize',
+            window.ResizeObserver
+              ? null
+              : () => () => this.svg.dispatch('toggle')
+          );
 
         // Update the nodes…
-        this.node = this.svgGroup.selectAll('g.node').data(nodes, (d) => {
-          if (!d.id) d.id = ++this.index;
-        });
-        // console.log(source.x0, source.y0);
+        const node = this.gNode.selectAll('g').data(nodes, (d) => d.id);
+
         // Enter any new nodes at the parent's previous position.
-        this.nodeEnter = this.node
+        const nodeEnter = node
           .enter()
           .append('g')
-          .attr('class', 'node')
-          .attr('transform', `translate(${source.y0},${source.x0})`)
-          .on('click', this.click);
-        this.nodeEnter
+          .attr('transform', () => `translate(${source.y0},${source.x0})`)
+          .attr('fill-opacity', 0)
+          .attr('stroke-opacity', 0)
+          .on('click', (d) => {
+            if (d3.event.defaultPrevented) return; // click suppressed
+            if (d.children) {
+              d._children = d.children;
+              d.children = null;
+            } else if (d._children) {
+              d.children = d._children;
+              d._children = null;
+            }
+            update(d);
+          });
+
+        nodeEnter
           .append('circle')
           .attr('class', 'nodeCircle')
           .attr('r', 2.5)
-          .style('fill', (d) => (d.children ? '#555' : '#999'));
+          .attr('fill', (d) => (d.children ? '#555' : '#999'))
+          .attr('stroke-width', 10);
 
-        this.nodeEnter
+        nodeEnter
           .append('text')
-          .attr('x', (d) => (d.children || d._children ? -10 : 10))
-          .attr('dy', '.35em')
+          .attr('x', (d) => (d._children ? -6 : 6))
+          .attr('dy', '.31em')
           .attr('class', 'nodeText')
-          .attr('text-anchor', (d) =>
-            d.children || d._children ? 'end' : 'start'
-          )
+          .attr('text-anchor', (d) => (d._children ? 'end' : 'start'))
           .text((d) => d.data.name)
+          .clone(true)
           .lower()
-          .style('fill-opacity', 0);
-        // Update the text to reflect whether node has children or not.
-        // this.nodeEnter
-        //   .select('text')
-        //   .attr('x', (d) => (d.children || d._children ? -10 : 10))
-        //   .attr('text-anchor', (d) =>
-        //     d.children || d._children ? 'end' : 'start'
-        //   )
-        //   .text((d) => d.name);
-
-        // Change the circle fill depending on whether it has children and is collapsed
-        // this.nodeEnter
-        //   .select('circle.nodeCircle')
-        //   .attr('r', 2.5)
-        //   .style('fill', (d) => (d._children ? '#555' : '#999'));
+          .attr('stroke-linejoin', 'round')
+          .attr('stroke-width', 3)
+          .attr('stroke', 'white');
 
         // Transition nodes to their new position.
 
-        const nodeUpdate = this.nodeEnter
-          .transition()
-          .duration(this.duration)
-          .attr('transform', (d) => `translate(${d.y},${d.x})`);
-        console.log(this.nodeEnter);
-
-        // Fade the text in
-        nodeUpdate.select('text').style('fill-opacity', 1);
+        const nodeUpdate = node
+          .merge(nodeEnter)
+          .transition(transition)
+          .attr('transform', (d) => `translate(${d.y},${d.x})`)
+          .attr('fill-opacity', 1)
+          .attr('stroke-opacity', 1);
+        console.log(nodeUpdate);
 
         // Transition exiting nodes to the parent's new position.
-        const nodeExit = this.node
+        const nodeExit = node
           .exit()
-          .transition()
-          .duration(this.duration)
+          .transition(transition)
+          .remove()
           .attr('transform', `translate(${source.y},${source.x})`)
-          .remove();
+          .attr('fill-opacity', 0)
+          .attr('stroke-opacity', 0);
+        console.log(nodeExit);
 
-        nodeExit.select('circle').attr('r', 0);
-
-        nodeExit.select('text').style('fill-opacity', 0);
-
-        // Update the links…
-        // this.svgGroup
-        //   .append('g')
-        //   .attr('fill', 'none')
-        //   .attr('stroke', '#555')
-        //   .attr('stroke-opacity', 0.4)
-        //   .attr('stroke-width', 1.5)
-        //   .selectAll('path')
-        //   .data(links, (d) => d.target.id)
-        //   .join('path')
-        //   .attr(
-        //     'd',
-        //     d3
-        //       .linkHorizontal()
-        //       .x(source.x0)
-        //       .y(source.y0)
-        //   );
-
-        // Enter any new links at the parent's previous position.
+        // update the links...
         const link = this.gLink
           .selectAll('path')
           .data(links, (d) => d.target.id);
+        // Enter any new links at the parent's previous position.
         const linkEnter = link
           .enter()
           .append('path')
@@ -267,13 +252,13 @@ export default {
         // Transition links to their new position.
         link
           .merge(linkEnter)
-          .transition(this.duration)
+          .transition(transition)
           .attr('d', linkH);
 
         // Transition exiting nodes to the parent's new position.
         link
           .exit()
-          .transition(this.duration)
+          .transition(transition)
           .remove()
           .attr('d', () => {
             const o = { x: source.x, y: source.y };
@@ -290,17 +275,6 @@ export default {
        * @param {*} d
        * @return {*}
        */
-      this.click = (d) => {
-        if (d3.event.defaultPrevented) return; // click suppressed
-        if (d.children) {
-          d._children = d.children;
-          d.children = null;
-        } else if (d._children) {
-          d.children = d._children;
-          d._children = null;
-        }
-        update(d);
-      };
 
       update(this.treeRoot);
 
