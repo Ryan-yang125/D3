@@ -106,12 +106,14 @@ export default {
         .append('svg')
         .attr('style', 'background: white')
         .attr('width', 720)
-        .attr('height', 720);
-      this.svg.call(
-        d3.zoom().on('zoom', () => {
-          this.svg.attr('transform', d3.event.transform);
-        })
-      );
+        .attr('height', 720)
+        .call(
+          d3.zoom().on('zoom', () => {
+            this.svg.attr('transform', d3.event.transform);
+          })
+        )
+        .append('g');
+
       // 添加links svg
       this.gLink = this.svg
         .append('g')
