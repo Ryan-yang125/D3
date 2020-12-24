@@ -4,7 +4,7 @@
 <script>
 import * as d3 from 'd3';
 import * as d3h from 'd3-hierarchy';
-// import originData from '../../assets/tree-data.json';
+import originData from '../../assets/tree-data.json';
 
 export default {
   name: 'Tree',
@@ -97,16 +97,16 @@ export default {
 
       // 选择svg容器
       d3.select('#tree-container')
-        .style('width', '960px')
-        .style('height', '960px');
+        .style('width', '960rem')
+        .style('height', '960rem');
 
       // 添加base svg
       this.svg = d3
         .select('#tree-container')
         .append('svg')
         .attr('style', 'background: white')
-        .attr('width', 720)
-        .attr('height', 720)
+        .attr('width', '960rem')
+        .attr('height', '960rem')
         .call(
           d3.zoom().on('zoom', () => {
             this.svg.attr('transform', d3.event.transform);
@@ -122,20 +122,26 @@ export default {
         .attr('stroke-opacity', 0.4)
         .attr('stroke-width', 1.5);
       // 添加nodes svg
-      this.gNode = this.svg.append('g');
-      // 初始化tree
-      this.tree = d3h.tree();
-      this.tree.size([this.width, this.height]);
+      this.gNode = this.svg
+        .append('g')
+        .attr('cursor', 'pointer')
+        .attr('pointer-events', 'all');
       // load data
-      this.treeRoot = d3h.hierarchy(this.data);
+      this.treeRoot = d3h.hierarchy(originData);
       this.treeRoot.x0 = this.height / 2;
       this.treeRoot.y0 = 0;
       this.treeRoot.descendants().forEach((d, i) => {
         d.id = i;
         d._children = d.children;
+        // TODO initial to make some nodes closed
+        // if (d.depth && d.data.name.length !== 7) d.children = null;
       });
+      // 初始化tree
+      this.tree = d3.tree();
+      // TODO adjust by the node size
+      this.tree.nodeSize([18, this.height]);
       this.tree(this.treeRoot);
-
+      // this.tree = d3.tree(this.treeRoot).nodeSize([10, 25]);
       const linkH = d3
         .linkHorizontal()
         .x((d) => d.y)
@@ -188,13 +194,7 @@ export default {
           .attr('stroke-opacity', 0)
           .on('click', (d) => {
             if (d3.event.defaultPrevented) return; // click suppressed
-            if (d.children) {
-              d._children = d.children;
-              d.children = null;
-            } else if (d._children) {
-              d.children = d._children;
-              d._children = null;
-            }
+            d.children = d.children ? null : d._children;
             update(d);
           });
 
@@ -202,7 +202,7 @@ export default {
           .append('circle')
           .attr('class', 'nodeCircle')
           .attr('r', 2.5)
-          .attr('fill', (d) => (d.children ? '#555' : '#999'))
+          .attr('fill', (d) => (d._children ? '#555' : '#999'))
           .attr('stroke-width', 10);
 
         nodeEnter
