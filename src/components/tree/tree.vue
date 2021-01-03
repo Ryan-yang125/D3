@@ -22,6 +22,7 @@ export default {
       titleRectWidth: 460,
       titleRectHeight: 40,
       gLinkStroke: { color: '#456', opacity: 0.6, width: 2 },
+      nodeLabel: { fontSize: 15, fontFamily: 'Arial', fontColor: '#000' },
       width: 460,
       height: 460,
       chartPadding: { top: 80, right: 80, bottom: 80, left: 80 },
@@ -106,6 +107,26 @@ export default {
         this.gLink.attr('stroke-width', this.gLinkStroke.width);
       },
     },
+    'options.nodeLabelFontSize': {
+      handler() {
+        this.nodeLabel.fontSize = `${this.options.nodeLabelFontSize}`;
+        this.gNode.selectAll('text').attr('font-size', this.nodeLabel.fontSize);
+      },
+    },
+    'options.nodeLabelFontFamily': {
+      handler() {
+        this.nodeLabel.fontFamily = this.options.nodeLabelFontFamily;
+        this.gNode
+          .selectAll('text')
+          .attr('font-family', this.nodeLabel.fontFamily);
+      },
+    },
+    'options.nodeLabelFontColor': {
+      handler() {
+        this.nodeLabel.fontColor = `${this.options.nodeLabelFontColor}`;
+        this.gNode.selectAll('text').attr('fill', this.nodeLabel.fontColor);
+      },
+    },
   },
   methods: {
     initTree() {
@@ -154,7 +175,7 @@ export default {
         d.id = i;
         d._children = d.children;
         // TODO initial to make some nodes closed
-        // if (d.depth && d.data.name.length !== 7) d.children = null;
+        if (d.depth && d.data.name.length !== 7) d.children = null;
       });
       // 初始化tree
       this.tree = d3.tree();
@@ -177,6 +198,7 @@ export default {
         const nodes = this.treeRoot.descendants().reverse();
         const links = this.treeRoot.links();
         // Compute the new tree layout.
+        this.tree(this.treeRoot);
         let left = this.treeRoot;
         let right = this.treeRoot;
         this.treeRoot.eachBefore((node) => {
@@ -232,6 +254,9 @@ export default {
           .attr('class', 'nodeText')
           .attr('text-anchor', (d) => (d._children ? 'end' : 'start'))
           .text((d) => d.data.name)
+          .attr('font-size', this.nodeLabel.fontSize)
+          .attr('font-family', this.nodeLabel.fontFamily)
+          .attr('fill', this.nodeLabel.fontColor)
           .clone(true)
           .lower()
           .attr('stroke-linejoin', 'round')
