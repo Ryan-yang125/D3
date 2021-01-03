@@ -68,6 +68,18 @@
               </div>
             </el-scrollbar>
           </el-tab-pane>
+          <el-tab-pane label="treeSize" name="sixth">
+            <el-scrollbar style="height: 100%">
+              <div class="form-box">
+                <HForm
+                  v-if="isInited"
+                  :formData="formConfigTreeSize.formData"
+                  :items="formConfigTreeSize.items"
+                  @eventdone="eventDone"
+                ></HForm>
+              </div>
+            </el-scrollbar>
+          </el-tab-pane>
         </el-tabs>
       </div>
     </TestGrid>
@@ -83,6 +95,7 @@ import settingLink from '~/tests/setting-rules/property-setting-tree-link';
 import settingNodeLabel from '~/tests/setting-rules/property-setting-tree-nodeLabel';
 import settingNodeCircle from '~/tests/setting-rules/property-setting-tree-nodeCircle';
 import settingAnimate from '~/tests/setting-rules/property-setting-tree-animate';
+import settingTreeSize from '~/tests/setting-rules/property-setting-tree-treeSize';
 import { cloneDeep } from 'lodash';
 
 export default {
@@ -124,6 +137,9 @@ export default {
         //animateControl
         animateDuration: 750,
         animateExpandAll: false,
+        //treeSize
+        treeSizeWidth: 25,
+        treeSizeHeight: 300,
       },
       formConfigTitle: {
         formData: {},
@@ -142,6 +158,10 @@ export default {
         items: [],
       },
       formConfigAnimate: {
+        formData: {},
+        items: [],
+      },
+      formConfigTreeSize: {
         formData: {},
         items: [],
       },
@@ -171,6 +191,7 @@ export default {
       this.buildPropertyGroup(settingNodeLabel, 'formConfigNodeLabel');
       this.buildPropertyGroup(settingNodeCircle, 'formConfigNodeCircle');
       this.buildPropertyGroup(settingAnimate, 'formConfigAnimate');
+      this.buildPropertyGroup(settingTreeSize, 'formConfigTreeSize');
 
       this.$nextTick(() => {
         this.isInited = true;

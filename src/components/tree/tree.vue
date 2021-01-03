@@ -31,6 +31,8 @@ export default {
         openFill: '#fff',
         closeFill: '#999',
       },
+      treeSizeWidth: 25,
+      treeSizeHeight: 300,
       width: 460,
       height: 460,
       chartPadding: { top: 80, right: 80, bottom: 80, left: 80 },
@@ -94,6 +96,76 @@ export default {
           this.title.attr('style', 'display: block');
         } else {
           this.title.attr('style', 'display: none');
+        }
+      },
+    },
+    'options.titlePosition': {
+      handler() {
+        this.updateTitle();
+      },
+    },
+    'options.titleBackground': {
+      handler() {
+        if (this.options.titleIsShow) {
+          this.title
+            .select('rect')
+            .attr('fill', `${this.options.titleBackground}`);
+        }
+      },
+    },
+    'options.titleFontColor': {
+      handler() {
+        if (this.options.titleIsShow) {
+          this.title
+            .select('text')
+            .attr('fill', `${this.options.titleFontColor}`);
+        }
+      },
+    },
+    'options.titleTextPosition': {
+      handler() {
+        if (this.options.titleIsShow) {
+          // 修改text相对标题rect的位置,来更改文本对齐方式
+          switch (this.options.titleTextPosition) {
+            case 'center':
+              this.title
+                .select('text')
+                .attr('text-anchor', 'middle')
+                .attr('x', 350);
+              break;
+            case 'left':
+              this.title
+                .select('text')
+                .attr('text-anchor', 'start')
+                .attr('x', 10);
+              break;
+            case 'right':
+              this.title
+                .select('text')
+                .attr('text-anchor', 'end')
+                .attr('x', 690);
+              break;
+            default:
+              break;
+          }
+        }
+      },
+    },
+    'options.titleFontFamily': {
+      handler() {
+        if (this.options.titleIsShow) {
+          this.title
+            .select('text')
+            .attr('font-family', `${this.options.titleFontFamily}`);
+        }
+      },
+    },
+    'options.titleFontSize': {
+      handler() {
+        if (this.options.titleIsShow) {
+          this.title
+            .select('text')
+            .attr('font-size', `${this.options.titleFontSize}`);
         }
       },
     },
@@ -202,35 +274,43 @@ export default {
         }
       },
     },
+    'options.treeSizeWidth': {
+      handler() {
+        this.treeSizeWidth = this.options.treeSizeWidth;
+        this.tree.nodeSize([this.treeSizeWidth, this.treeSizeHeight]);
+        this.updateTree(this.treeRoot);
+      },
+    },
+    'options.treeSizeHeight': {
+      handler() {
+        this.treeSizeHeight = this.options.treeSizeHeight;
+        this.tree.nodeSize([this.treeSizeWidth, this.treeSizeHeight]);
+        this.updateTree(this.treeRoot);
+      },
+    },
   },
   methods: {
     initTree() {
-      console.log(this.options);
-      // 指定图表的宽高
-      this.width = 700 - this.chartPadding.right - this.chartPadding.left - 180;
-      this.height = 700 - this.chartPadding.bottom - this.chartPadding.top - 80;
-
       // 选择svg容器
       d3.select('#tree-container')
-        .style('width', '960rem')
-        .style('height', '960rem');
+        .style('width', '100rem')
+        .style('height', '100rem');
 
       // 添加base svg
       this.svg = d3
         .select('#tree-container')
         .append('svg')
         .attr('style', 'background: white')
-        .attr('width', '960rem')
-        .attr('height', '960rem')
+        .attr('width', '100rem')
+        .attr('height', '100rem')
         .call(
           d3.zoom().on('zoom', () => {
             this.svg.attr('transform', d3.event.transform);
           })
         )
-        .append('g');
-
+        .append('g')
+        .attr('transform', 'translate(100,450)');
       // 添加links svg
-      // TODO Linkprops
       this.gLink = this.svg
         .append('g')
         .attr('fill', 'none')
@@ -244,29 +324,28 @@ export default {
         .attr('pointer-events', 'all');
       // load data
       this.treeRoot = d3h.hierarchy(originData);
-      this.treeRoot.x0 = this.height / 2;
+      this.treeRoot.x0 = this.treeSizeHeight / 2;
       this.treeRoot.y0 = 0;
       this.treeRoot.descendants().forEach((d, i) => {
         d.id = i;
         d._children = d.children;
-        // TODO initial to make some nodes closed
         if (d.depth && d.data.name.length !== 7) d.children = null;
       });
       // 初始化tree
       this.tree = d3.tree();
-      // TODO adjust by the node size
-      this.tree.nodeSize([18, this.height]);
+      this.tree.nodeSize([this.treeSizeWidth, this.treeSizeHeight]);
       this.tree(this.treeRoot);
-      // this.tree = d3.tree(this.treeRoot).nodeSize([10, 25]);
       this.linkH = d3
-        .linkHorizontal()
-        .x((d) => d.y)
-        .y((d) => d.x);
+        .linkVertical()
+        // .linkHorizontal()
+        .x((d) => d.x)
+        .y((d) => d.y);
 
       this.updateTree(this.treeRoot);
 
       // 添加图表标题
-      this.title = this.svg
+      this.title = d3
+        .select('#tree-container svg')
         .append('g')
         .attr('transform', 'translate(0,0)')
         .attr('style', 'display: none'); // 默认不显示
@@ -306,7 +385,7 @@ export default {
         if (node.x < left.x) left = node;
         if (node.x > right.x) right = node;
       });
-      const height = right.x - left.x + this.margin.top + this.margin.bottom;
+      this.height = right.x - left.x + this.margin.top + this.margin.bottom;
       // define transition
       // TODO transition
       const transition = this.svg
@@ -316,7 +395,7 @@ export default {
           -this.margin.left,
           left.x - this.margin.top,
           this.width,
-          height,
+          this.height,
         ])
         .tween(
           'resize',
@@ -330,7 +409,7 @@ export default {
       const nodeEnter = node
         .enter()
         .append('g')
-        .attr('transform', `translate(${source.y0},${source.x0})`)
+        .attr('transform', `translate(${source.x0},${source.y0})`)
         .attr('fill-opacity', 0)
         .attr('stroke-opacity', 0)
         .on('click', (d) => {
@@ -357,6 +436,7 @@ export default {
         .attr('dy', '.31em')
         .attr('class', 'nodeText')
         .attr('text-anchor', (d) => (d._children ? 'end' : 'start'))
+        .style('writing-mode', 'tb-rl')
         .text((d) => d.data.name)
         .attr('font-size', this.nodeLabel.fontSize)
         .attr('font-family', this.nodeLabel.fontFamily)
@@ -369,23 +449,21 @@ export default {
 
       // Transition nodes to their new position.
 
-      const nodeUpdate = node
+      node
         .merge(nodeEnter)
         .transition(transition)
-        .attr('transform', (d) => `translate(${d.y},${d.x})`)
+        .attr('transform', (d) => `translate(${d.x},${d.y})`)
         .attr('fill-opacity', 1)
         .attr('stroke-opacity', 1);
-      console.log(nodeUpdate);
 
       // Transition exiting nodes to the parent's new position.
-      const nodeExit = node
+      node
         .exit()
         .transition(transition)
         .remove()
-        .attr('transform', `translate(${source.y},${source.x})`)
+        .attr('transform', `translate(${source.x},${source.y})`)
         .attr('fill-opacity', 0)
         .attr('stroke-opacity', 0);
-      console.log(nodeExit);
 
       // update the links...
       const link = this.gLink.selectAll('path').data(links, (d) => d.target.id);
@@ -418,6 +496,27 @@ export default {
         d.x0 = d.x;
         d.y0 = d.y;
       });
+    },
+    updateTitle() {
+      if (this.options.titleIsShow) {
+        // 根据设置进行对应旋转和平移
+        switch (this.options.titlePosition) {
+          case 'top':
+            this.title.attr('transform', 'rotate(0) translate(0,0)');
+            break;
+          case 'bottom':
+            this.title.attr('transform', 'rotate(0) translate(0,660)');
+            break;
+          case 'left':
+            this.title.attr('transform', 'translate(0,700) rotate(270)');
+            break;
+          case 'right':
+            this.title.attr('transform', 'translate(700,0) rotate(90)');
+            break;
+          default:
+            break;
+        }
+      }
     },
   },
 };
