@@ -17,12 +17,20 @@ export default {
       click: null,
       panSpeed: 30,
       duration: 750,
+      expandAll: false,
       title: null,
       titleText: 'Tree',
       titleRectWidth: 460,
       titleRectHeight: 40,
       gLinkStroke: { color: '#456', opacity: 0.6, width: 2 },
       nodeLabel: { fontSize: 15, fontFamily: 'Arial', fontColor: '#000' },
+      nodeCircle: {
+        size: 5,
+        borderWidth: 2,
+        borderColor: '#B83A3A',
+        openFill: '#fff',
+        closeFill: '#999',
+      },
       width: 460,
       height: 460,
       chartPadding: { top: 80, right: 80, bottom: 80, left: 80 },
@@ -127,6 +135,73 @@ export default {
         this.gNode.selectAll('text').attr('fill', this.nodeLabel.fontColor);
       },
     },
+    'options.nodeCircleSize': {
+      handler() {
+        this.nodeCircle.size = this.options.nodeCircleSize;
+        this.gNode.selectAll('circle').attr('r', this.nodeCircle.size);
+      },
+    },
+    'options.nodeCircleBorderWidth': {
+      handler() {
+        this.nodeCircle.borderWidth = this.options.nodeCircleBorderWidth;
+        this.gNode
+          .selectAll('circle')
+          .attr('stroke-width', this.nodeCircle.borderWidth);
+      },
+    },
+    'options.nodeCircleBorderColor': {
+      handler() {
+        this.nodeCircle.borderColor = `${this.options.nodeCircleBorderColor}`;
+        this.gNode
+          .selectAll('circle')
+          .attr('stroke', this.nodeCircle.borderColor);
+      },
+    },
+    'options.nodeCircleOpenFill': {
+      handler() {
+        this.nodeCircle.openFill = `${this.options.nodeCircleOpenFill}`;
+        this.gNode
+          .selectAll('circle')
+          .attr('fill', (d) =>
+            d._children
+              ? `${this.nodeCircle.openFill}`
+              : `${this.nodeCircle.closeFill}`
+          );
+      },
+    },
+    'options.nodeCircleCloseFill': {
+      handler() {
+        this.nodeCircle.closeFill = `${this.options.nodeCircleCloseFill}`;
+        this.gNode
+          .selectAll('circle')
+          .attr('fill', (d) =>
+            d._children
+              ? `${this.nodeCircle.openFill}`
+              : `${this.nodeCircle.closeFill}`
+          );
+      },
+    },
+    'options.animateDuration': {
+      handler() {
+        this.duration = this.options.animateDuration;
+      },
+    },
+    'options.animateExpandAll': {
+      handler() {
+        this.expandAll = this.options.animateExpandAll;
+        if (this.expandAll) {
+          this.treeRoot.descendants().forEach((d) => {
+            d.children = d._children;
+          });
+          this.updateTree(this.treeRoot);
+        } else {
+          this.treeRoot.descendants().forEach((d) => {
+            if (d.depth && d.data.name.length !== 7) d.children = null;
+          });
+          this.updateTree(this.treeRoot);
+        }
+      },
+    },
   },
   methods: {
     initTree() {
@@ -183,147 +258,12 @@ export default {
       this.tree.nodeSize([18, this.height]);
       this.tree(this.treeRoot);
       // this.tree = d3.tree(this.treeRoot).nodeSize([10, 25]);
-      const linkH = d3
+      this.linkH = d3
         .linkHorizontal()
         .x((d) => d.y)
         .y((d) => d.x);
-      /**
-       * @description: update tree layout when needed
-       * @param {*} source
-       * @return {*}
-       */
 
-      const update = (source) => {
-        const duration = d3.event && d3.event.altKey ? 2500 : 250;
-        const nodes = this.treeRoot.descendants().reverse();
-        const links = this.treeRoot.links();
-        // Compute the new tree layout.
-        this.tree(this.treeRoot);
-        let left = this.treeRoot;
-        let right = this.treeRoot;
-        this.treeRoot.eachBefore((node) => {
-          if (node.x < left.x) left = node;
-          if (node.x > right.x) right = node;
-        });
-        const height = right.x - left.x + this.margin.top + this.margin.bottom;
-        // define transition
-        // TODO transition
-        const transition = this.svg
-          .transition()
-          .duration(duration)
-          .attr('viewBox', [
-            -this.margin.left,
-            left.x - this.margin.top,
-            this.width,
-            height,
-          ])
-          .tween(
-            'resize',
-            window.ResizeObserver
-              ? null
-              : () => () => this.svg.dispatch('toggle')
-          );
-
-        // Update the nodes…
-        const node = this.gNode.selectAll('g').data(nodes, (d) => d.id);
-
-        // Enter any new nodes at the parent's previous position.
-        const nodeEnter = node
-          .enter()
-          .append('g')
-          .attr('transform', () => `translate(${source.y0},${source.x0})`)
-          .attr('fill-opacity', 0)
-          .attr('stroke-opacity', 0)
-          .on('click', (d) => {
-            if (d3.event.defaultPrevented) return; // click suppressed
-            d.children = d.children ? null : d._children;
-            update(d);
-          });
-
-        nodeEnter
-          .append('circle')
-          .attr('class', 'nodeCircle')
-          .attr('r', 2.5)
-          .attr('fill', (d) => (d._children ? '#555' : '#999'))
-          .attr('stroke-width', 10);
-
-        nodeEnter
-          .append('text')
-          .attr('x', (d) => (d._children ? -6 : 6))
-          .attr('dy', '.31em')
-          .attr('class', 'nodeText')
-          .attr('text-anchor', (d) => (d._children ? 'end' : 'start'))
-          .text((d) => d.data.name)
-          .attr('font-size', this.nodeLabel.fontSize)
-          .attr('font-family', this.nodeLabel.fontFamily)
-          .attr('fill', this.nodeLabel.fontColor)
-          .clone(true)
-          .lower()
-          .attr('stroke-linejoin', 'round')
-          .attr('stroke-width', 3)
-          .attr('stroke', 'white');
-
-        // Transition nodes to their new position.
-
-        const nodeUpdate = node
-          .merge(nodeEnter)
-          .transition(transition)
-          .attr('transform', (d) => `translate(${d.y},${d.x})`)
-          .attr('fill-opacity', 1)
-          .attr('stroke-opacity', 1);
-        console.log(nodeUpdate);
-
-        // Transition exiting nodes to the parent's new position.
-        const nodeExit = node
-          .exit()
-          .transition(transition)
-          .remove()
-          .attr('transform', `translate(${source.y},${source.x})`)
-          .attr('fill-opacity', 0)
-          .attr('stroke-opacity', 0);
-        console.log(nodeExit);
-
-        // update the links...
-        const link = this.gLink
-          .selectAll('path')
-          .data(links, (d) => d.target.id);
-        // Enter any new links at the parent's previous position.
-        const linkEnter = link
-          .enter()
-          .append('path')
-          .attr('d', () => {
-            const o = { x: source.x0, y: source.y0 };
-            return linkH({ source: o, target: o });
-          });
-
-        // Transition links to their new position.
-        link
-          .merge(linkEnter)
-          .transition(transition)
-          .attr('d', linkH);
-
-        // Transition exiting nodes to the parent's new position.
-        link
-          .exit()
-          .transition(transition)
-          .remove()
-          .attr('d', () => {
-            const o = { x: source.x, y: source.y };
-            return linkH({ source: o, target: o });
-          });
-        // Stash the old positions for transition.
-        nodes.forEach((d) => {
-          d.x0 = d.x;
-          d.y0 = d.y;
-        });
-      };
-      /**
-       * @description: collapse or expand and centered tree when node is clicked
-       * @param {*} d
-       * @return {*}
-       */
-
-      update(this.treeRoot);
+      this.updateTree(this.treeRoot);
 
       // 添加图表标题
       this.title = this.svg
@@ -347,6 +287,137 @@ export default {
         .attr('y', 25)
         .attr('text-anchor', 'middle')
         .attr('fill', '#000');
+    },
+    /**
+     * @description: update tree layout when needed
+     * @param {*} source
+     * @return {*}
+     */
+
+    updateTree(source) {
+      // const duration = d3.event && d3.event.altKey ? 2500 : 250;
+      const nodes = this.treeRoot.descendants().reverse();
+      const links = this.treeRoot.links();
+      // Compute the new tree layout.
+      this.tree(this.treeRoot);
+      let left = this.treeRoot;
+      let right = this.treeRoot;
+      this.treeRoot.eachBefore((node) => {
+        if (node.x < left.x) left = node;
+        if (node.x > right.x) right = node;
+      });
+      const height = right.x - left.x + this.margin.top + this.margin.bottom;
+      // define transition
+      // TODO transition
+      const transition = this.svg
+        .transition()
+        .duration(this.duration)
+        .attr('viewBox', [
+          -this.margin.left,
+          left.x - this.margin.top,
+          this.width,
+          height,
+        ])
+        .tween(
+          'resize',
+          window.ResizeObserver ? null : () => () => this.svg.dispatch('toggle')
+        );
+
+      // Update the nodes…
+      const node = this.gNode.selectAll('g').data(nodes, (d) => d.id);
+
+      // Enter any new nodes at the parent's previous position.
+      const nodeEnter = node
+        .enter()
+        .append('g')
+        .attr('transform', `translate(${source.y0},${source.x0})`)
+        .attr('fill-opacity', 0)
+        .attr('stroke-opacity', 0)
+        .on('click', (d) => {
+          if (d3.event.defaultPrevented) return; // click suppressed
+          d.children = d.children ? null : d._children;
+          this.updateTree(d);
+        });
+
+      nodeEnter
+        .append('circle')
+        .attr('class', 'nodeCircle')
+        .attr('r', this.nodeCircle.size)
+        .attr('fill', (d) =>
+          d._children
+            ? `${this.nodeCircle.openFill}`
+            : `${this.nodeCircle.closeFill}`
+        )
+        .attr('stroke', `${this.nodeCircle.borderColor}`)
+        .attr('stroke-width', this.nodeCircle.borderWidth);
+
+      nodeEnter
+        .append('text')
+        .attr('x', (d) => (d._children ? -6 : 6))
+        .attr('dy', '.31em')
+        .attr('class', 'nodeText')
+        .attr('text-anchor', (d) => (d._children ? 'end' : 'start'))
+        .text((d) => d.data.name)
+        .attr('font-size', this.nodeLabel.fontSize)
+        .attr('font-family', this.nodeLabel.fontFamily)
+        .attr('fill', this.nodeLabel.fontColor)
+        .clone(true)
+        .lower()
+        .attr('stroke-linejoin', 'round')
+        .attr('stroke-width', 3)
+        .attr('stroke', 'white');
+
+      // Transition nodes to their new position.
+
+      const nodeUpdate = node
+        .merge(nodeEnter)
+        .transition(transition)
+        .attr('transform', (d) => `translate(${d.y},${d.x})`)
+        .attr('fill-opacity', 1)
+        .attr('stroke-opacity', 1);
+      console.log(nodeUpdate);
+
+      // Transition exiting nodes to the parent's new position.
+      const nodeExit = node
+        .exit()
+        .transition(transition)
+        .remove()
+        .attr('transform', `translate(${source.y},${source.x})`)
+        .attr('fill-opacity', 0)
+        .attr('stroke-opacity', 0);
+      console.log(nodeExit);
+
+      // update the links...
+      const link = this.gLink.selectAll('path').data(links, (d) => d.target.id);
+      // Enter any new links at the parent's previous position.
+      const linkEnter = link
+        .enter()
+        .append('path')
+        .attr('d', () => {
+          const o = { x: source.x0, y: source.y0 };
+          return this.linkH({ source: o, target: o });
+        });
+
+      // Transition links to their new position.
+      link
+        .merge(linkEnter)
+        .transition(transition)
+        .attr('d', this.linkH);
+
+      // Transition exiting nodes to the parent's new position.
+      link
+        .exit()
+        .transition(transition)
+        .remove()
+        .attr('d', () => {
+          const o = { x: source.x, y: source.y };
+          return this.linkH({ source: o, target: o });
+        });
+      // Stash the old positions for transition.
+      nodes.forEach((d) => {
+        d.x0 = d.x;
+        d.y0 = d.y;
+      });
     },
   },
 };

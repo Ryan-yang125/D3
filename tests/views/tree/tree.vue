@@ -44,8 +44,31 @@
               </div>
             </el-scrollbar>
           </el-tab-pane>
+          <el-tab-pane label="nodeCircle" name="forth">
+            <el-scrollbar style="height: 100%">
+              <div class="form-box">
+                <HForm
+                  v-if="isInited"
+                  :formData="formConfigNodeCircle.formData"
+                  :items="formConfigNodeCircle.items"
+                  @eventdone="eventDone"
+                ></HForm>
+              </div>
+            </el-scrollbar>
+          </el-tab-pane>
+          <el-tab-pane label="animateControl" name="fifth">
+            <el-scrollbar style="height: 100%">
+              <div class="form-box">
+                <HForm
+                  v-if="isInited"
+                  :formData="formConfigAnimate.formData"
+                  :items="formConfigAnimate.items"
+                  @eventdone="eventDone"
+                ></HForm>
+              </div>
+            </el-scrollbar>
+          </el-tab-pane>
         </el-tabs>
-        <!-- 根据需要还可以添加 tooltip, 颜色列表....等 -->
       </div>
     </TestGrid>
   </div>
@@ -58,6 +81,8 @@ import HForm from '~/tests/components/h-form';
 import settingTitle from '~/tests/setting-rules/property-setting-tree-title';
 import settingLink from '~/tests/setting-rules/property-setting-tree-link';
 import settingNodeLabel from '~/tests/setting-rules/property-setting-tree-nodeLabel';
+import settingNodeCircle from '~/tests/setting-rules/property-setting-tree-nodeCircle';
+import settingAnimate from '~/tests/setting-rules/property-setting-tree-animate';
 import { cloneDeep } from 'lodash';
 
 export default {
@@ -90,6 +115,15 @@ export default {
         nodeLabelFontSize: 15,
         nodeLabelFontFamily: 'Arial',
         nodeLabelFontColor: '#000',
+        //nodeCircle
+        nodeCircleSize: 5,
+        nodeCircleBorderWidth: 2,
+        nodeCircleBorderColor: '#B83A3A',
+        nodeCircleOpenFill: '#fff',
+        nodeCircleCloseFill: '#999',
+        //animateControl
+        animateDuration: 750,
+        animateExpandAll: false,
       },
       formConfigTitle: {
         formData: {},
@@ -100,6 +134,14 @@ export default {
         items: [],
       },
       formConfigNodeLabel: {
+        formData: {},
+        items: [],
+      },
+      formConfigNodeCircle: {
+        formData: {},
+        items: [],
+      },
+      formConfigAnimate: {
         formData: {},
         items: [],
       },
@@ -127,6 +169,8 @@ export default {
       this.buildPropertyGroup(settingTitle, 'formConfigTitle');
       this.buildPropertyGroup(settingLink, 'formConfigLink');
       this.buildPropertyGroup(settingNodeLabel, 'formConfigNodeLabel');
+      this.buildPropertyGroup(settingNodeCircle, 'formConfigNodeCircle');
+      this.buildPropertyGroup(settingAnimate, 'formConfigAnimate');
 
       this.$nextTick(() => {
         this.isInited = true;
