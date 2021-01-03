@@ -21,6 +21,7 @@ export default {
       titleText: 'Tree',
       titleRectWidth: 460,
       titleRectHeight: 40,
+      gLinkStroke: { color: '#456', opacity: 0.6, width: 2 },
       width: 460,
       height: 460,
       chartPadding: { top: 80, right: 80, bottom: 80, left: 80 },
@@ -87,6 +88,24 @@ export default {
         }
       },
     },
+    'options.linkStrokeColor': {
+      handler() {
+        this.gLinkStroke.color = `${this.options.linkStrokeColor}`;
+        this.gLink.attr('stroke', this.gLinkStroke.color);
+      },
+    },
+    'options.linkStrokeOpacity': {
+      handler() {
+        this.gLinkStroke.opacity = this.options.linkStrokeOpacity / 10;
+        this.gLink.attr('stroke-opacity', this.gLinkStroke.opacity);
+      },
+    },
+    'options.linkStrokeWidth': {
+      handler() {
+        this.gLinkStroke.width = this.options.linkStrokeWidth;
+        this.gLink.attr('stroke-width', this.gLinkStroke.width);
+      },
+    },
   },
   methods: {
     initTree() {
@@ -115,12 +134,13 @@ export default {
         .append('g');
 
       // 添加links svg
+      // TODO Linkprops
       this.gLink = this.svg
         .append('g')
         .attr('fill', 'none')
-        .attr('stroke', '#555')
-        .attr('stroke-opacity', 0.4)
-        .attr('stroke-width', 1.5);
+        .attr('stroke', this.gLinkStroke.color)
+        .attr('stroke-opacity', this.gLinkStroke.opacity)
+        .attr('stroke-width', this.gLinkStroke.width);
       // 添加nodes svg
       this.gNode = this.svg
         .append('g')

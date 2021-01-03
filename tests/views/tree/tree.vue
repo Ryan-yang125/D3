@@ -20,6 +20,18 @@
               </div>
             </el-scrollbar>
           </el-tab-pane>
+          <el-tab-pane label="link" name="second">
+            <el-scrollbar style="height: 100%">
+              <div class="form-box">
+                <HForm
+                  v-if="isInited"
+                  :formData="formConfigLink.formData"
+                  :items="formConfigLink.items"
+                  @eventdone="eventDone"
+                ></HForm>
+              </div>
+            </el-scrollbar>
+          </el-tab-pane>
         </el-tabs>
         <!-- 根据需要还可以添加 tooltip, 颜色列表....等 -->
       </div>
@@ -27,13 +39,13 @@
   </div>
 </template>
 <script>
-import { Tree } from "@/index";
-import TestGrid from "~/tests/components/test-grid";
-import HForm from "~/tests/components/h-form";
+import { Tree } from '@/index';
+import TestGrid from '~/tests/components/test-grid';
+import HForm from '~/tests/components/h-form';
 // 下面这里请根据你自己的开发情况import相应组件的配置项
-import settingTitle from "~/tests/setting-rules/property-setting-tree-title";
-
-import { cloneDeep } from "lodash";
+import settingTitle from '~/tests/setting-rules/property-setting-tree-title';
+import settingLink from '~/tests/setting-rules/property-setting-tree-link';
+import { cloneDeep } from 'lodash';
 
 export default {
   components: {
@@ -43,26 +55,33 @@ export default {
   },
   data() {
     return {
-      configJson: "",
-      propertyKeys: ["label", "value"],
-      activeName: "first",
+      configJson: '',
+      propertyKeys: ['label', 'value'],
+      activeName: 'first',
       isInited: false,
       bindConfig: {
-        titleText: "Tree",
+        //title
+        titleText: 'Tree',
         titleIsShow: false,
-        titleBackground: "#E3E3E3",
-        titlePosition: "top",
-        titleTextPosition: "center",
+        titleBackground: '#E3E3E3',
+        titlePosition: 'top',
+        titleTextPosition: 'center',
         titleFontSize: 16,
-        titleFontFamily: "Arial",
-        titleFontColor: "#000",
-        // ... 根据需要添加更多
+        titleFontFamily: 'Arial',
+        titleFontColor: '#000',
+        //link
+        linkStrokeColor: '#456',
+        linkStrokeOpacity: 6,
+        linkStrokeWidth: 2,
       },
       formConfigTitle: {
         formData: {},
         items: [],
       },
-      // ...
+      formConfigLink: {
+        formData: {},
+        items: [],
+      },
     };
   },
   // https://cn.vuejs.org/v2/api/#created
@@ -75,7 +94,7 @@ export default {
     logConfig() {
       const jsonObj = {};
       Object.keys(this.bindConfig).forEach((key) => {
-        if (key !== "$el") {
+        if (key !== '$el') {
           jsonObj[key] = cloneDeep(this.bindConfig[key]);
         }
       });
@@ -84,13 +103,14 @@ export default {
 
     initFormSetting() {
       // 初始化表单设置
-      this.buildPropertyGroup(settingTitle, "formConfigTitle");
+      this.buildPropertyGroup(settingTitle, 'formConfigTitle');
+      this.buildPropertyGroup(settingLink, 'formConfigLink');
 
       this.$nextTick(() => {
         this.isInited = true;
       });
     },
-    buildPropertyGroup(group, formObject = "formConfigAxis") {
+    buildPropertyGroup(group, formObject = 'formConfigAxis') {
       Object.keys(group).forEach((property) => {
         const item = this.getFormItemFromRule(group[property], property);
         if (item) {
@@ -116,17 +136,17 @@ export default {
       try {
         const typeRule = `${rule.type}`.toLowerCase();
         switch (typeRule) {
-          case "boolean":
+          case 'boolean':
             {
               return {
                 formItem: {
-                  label: rule.title + "：",
+                  label: rule.title + '：',
                   prop: property,
                 },
                 formComp: {
-                  is: "el-switch",
-                  "active-color": "#13ce66",
-                  "inactive-color": "#ff4949",
+                  is: 'el-switch',
+                  'active-color': '#13ce66',
+                  'inactive-color': '#ff4949',
                 },
                 events: {
                   change: `${property}changed${typeRule}`,
@@ -134,19 +154,19 @@ export default {
               };
             }
             break;
-          case "number":
+          case 'number':
             {
               return {
                 formItem: {
-                  label: rule.title + "：",
+                  label: rule.title + '：',
                   prop: property,
                 },
                 formComp: {
-                  is: "el-slider",
+                  is: 'el-slider',
                   debounce: 30,
                   min: rule.values[0],
                   max: rule.values[1],
-                  "show-input": true,
+                  'show-input': true,
                 },
                 events: {
                   input: `${property}changed${typeRule}`,
@@ -154,15 +174,15 @@ export default {
               };
             }
             break;
-          case "enum":
+          case 'enum':
             {
               return {
                 formItem: {
-                  label: rule.title + "：",
+                  label: rule.title + '：',
                   prop: property,
                 },
                 formComp: {
-                  is: "el-select",
+                  is: 'el-select',
                 },
                 items: rule.values.reduce((rec, item) => {
                   rec.push({
@@ -177,15 +197,15 @@ export default {
               };
             }
             break;
-          case "color":
+          case 'color':
             {
               return {
                 formItem: {
-                  label: rule.title + "：",
+                  label: rule.title + '：',
                   prop: property,
                 },
                 formComp: {
-                  is: "el-color-picker",
+                  is: 'el-color-picker',
                 },
                 events: {
                   change: `${property}changed${typeRule}`,
@@ -194,15 +214,15 @@ export default {
             }
             break;
 
-          case "string":
+          case 'string':
             {
               return {
                 formItem: {
-                  label: rule.title + "：",
+                  label: rule.title + '：',
                   prop: property,
                 },
                 formComp: {
-                  is: "el-input",
+                  is: 'el-input',
                 },
                 events: {
                   change: `${property}changed${typeRule}`,
@@ -210,15 +230,15 @@ export default {
               };
             }
             break;
-          case "propertykeys":
+          case 'propertykeys':
             {
               return {
                 formItem: {
-                  label: rule.title + "：",
+                  label: rule.title + '：',
                   prop: property,
                 },
                 formComp: {
-                  is: "el-select",
+                  is: 'el-select',
                 },
                 items: propertyKeys,
                 events: {
@@ -228,7 +248,7 @@ export default {
             }
             break;
           default:
-            console.log("type rule not mathed:", typeRule);
+            console.log('type rule not mathed:', typeRule);
         }
       } catch (error) {
         console.log(rule);
@@ -249,7 +269,7 @@ export default {
       overflow-x: hidden;
     }
     .el-tab-pane {
-      height: calc(~"100vh - 180px");
+      height: calc(~'100vh - 180px');
       overflow-y: hidden;
     }
     .form-box {
