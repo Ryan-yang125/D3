@@ -68,13 +68,13 @@
               </div>
             </el-scrollbar>
           </el-tab-pane>
-          <el-tab-pane label="treeSize" name="sixth">
+          <el-tab-pane label="treeLayout" name="sixth">
             <el-scrollbar style="height: 100%">
               <div class="form-box">
                 <HForm
                   v-if="isInited"
-                  :formData="formConfigTreeSize.formData"
-                  :items="formConfigTreeSize.items"
+                  :formData="formConfigTreeLayout.formData"
+                  :items="formConfigTreeLayout.items"
                   @eventdone="eventDone"
                 ></HForm>
               </div>
@@ -95,7 +95,7 @@ import settingLink from '~/tests/setting-rules/property-setting-tree-link';
 import settingNodeLabel from '~/tests/setting-rules/property-setting-tree-nodeLabel';
 import settingNodeCircle from '~/tests/setting-rules/property-setting-tree-nodeCircle';
 import settingAnimate from '~/tests/setting-rules/property-setting-tree-animate';
-import settingTreeSize from '~/tests/setting-rules/property-setting-tree-treeSize';
+import settingTreeLayout from '~/tests/setting-rules/property-setting-tree-treeLayout';
 import { cloneDeep } from 'lodash';
 
 export default {
@@ -137,9 +137,10 @@ export default {
         //animateControl
         animateDuration: 750,
         animateExpandAll: false,
-        //treeSize
-        treeSizeWidth: 25,
-        treeSizeHeight: 300,
+        //treeLayout
+        treeLayoutWidth: 25,
+        treeLayoutHeight: 300,
+        treeLayoutDirection: 'left',
       },
       formConfigTitle: {
         formData: {},
@@ -161,7 +162,7 @@ export default {
         formData: {},
         items: [],
       },
-      formConfigTreeSize: {
+      formConfigTreeLayout: {
         formData: {},
         items: [],
       },
@@ -172,6 +173,7 @@ export default {
     // 这里会在实例创建完成后被立即调用。
     // 感兴趣的可以了解下它与 mounted 的不同：https://cn.vuejs.org/v2/guide/instance.html#%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F%E5%9B%BE%E7%A4%BA
     this.initFormSetting();
+    console.log('created');
   },
   methods: {
     logConfig() {
@@ -191,7 +193,7 @@ export default {
       this.buildPropertyGroup(settingNodeLabel, 'formConfigNodeLabel');
       this.buildPropertyGroup(settingNodeCircle, 'formConfigNodeCircle');
       this.buildPropertyGroup(settingAnimate, 'formConfigAnimate');
-      this.buildPropertyGroup(settingTreeSize, 'formConfigTreeSize');
+      this.buildPropertyGroup(settingTreeLayout, 'formConfigTreeLayout');
 
       this.$nextTick(() => {
         this.isInited = true;

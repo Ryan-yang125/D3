@@ -31,8 +31,7 @@ export default {
         openFill: '#fff',
         closeFill: '#999',
       },
-      treeSizeWidth: 25,
-      treeSizeHeight: 300,
+      treeLayout: { width: 25, height: 300, direction: 'left' },
       width: 460,
       height: 460,
       chartPadding: { top: 80, right: 80, bottom: 80, left: 80 },
@@ -274,17 +273,24 @@ export default {
         }
       },
     },
-    'options.treeSizeWidth': {
+    'options.treeLayoutWidth': {
       handler() {
-        this.treeSizeWidth = this.options.treeSizeWidth;
-        this.tree.nodeSize([this.treeSizeWidth, this.treeSizeHeight]);
+        this.treeLayout.width = this.options.treeLayoutWidth;
+        this.tree.nodeSize([this.treeLayout.width, this.treeLayout.height]);
         this.updateTree(this.treeRoot);
       },
     },
-    'options.treeSizeHeight': {
+    'options.treeLayoutHeight': {
       handler() {
-        this.treeSizeHeight = this.options.treeSizeHeight;
-        this.tree.nodeSize([this.treeSizeWidth, this.treeSizeHeight]);
+        console.log('watched');
+        this.treeLayout.height = this.options.treeLayoutHeight;
+        this.tree.nodeSize([this.treeLayout.width, this.treeLayout.height]);
+        this.updateTree(this.treeRoot);
+      },
+    },
+    'options.treeLayoutDirection': {
+      handler() {
+        this.treeLayout.direction = this.options.treeLayoutDirection;
         this.updateTree(this.treeRoot);
       },
     },
@@ -309,7 +315,7 @@ export default {
           })
         )
         .append('g')
-        .attr('transform', 'translate(100,450)');
+        .attr('transform', `translate(${this.width / 2},${this.height})`);
       // 添加links svg
       this.gLink = this.svg
         .append('g')
@@ -324,7 +330,7 @@ export default {
         .attr('pointer-events', 'all');
       // load data
       this.treeRoot = d3h.hierarchy(originData);
-      this.treeRoot.x0 = this.treeSizeHeight / 2;
+      this.treeRoot.x0 = this.treeLayout.width / 2;
       this.treeRoot.y0 = 0;
       this.treeRoot.descendants().forEach((d, i) => {
         d.id = i;
@@ -333,14 +339,9 @@ export default {
       });
       // 初始化tree
       this.tree = d3.tree();
-      this.tree.nodeSize([this.treeSizeWidth, this.treeSizeHeight]);
+      this.tree.nodeSize([this.treeLayout.width, this.treeLayout.height]);
+      console.log('init');
       this.tree(this.treeRoot);
-      this.linkH = d3
-        .linkVertical()
-        // .linkHorizontal()
-        .x((d) => d.x)
-        .y((d) => d.y);
-
       this.updateTree(this.treeRoot);
 
       // 添加图表标题
@@ -374,34 +375,16 @@ export default {
      */
 
     updateTree(source) {
-      // const duration = d3.event && d3.event.altKey ? 2500 : 250;
+      console.log('update');
+      this.linkDirection();
+      this.svg.attr('writing-mode', this.writeMode());
+
       const nodes = this.treeRoot.descendants().reverse();
       const links = this.treeRoot.links();
       // Compute the new tree layout.
       this.tree(this.treeRoot);
-      let left = this.treeRoot;
-      let right = this.treeRoot;
-      this.treeRoot.eachBefore((node) => {
-        if (node.x < left.x) left = node;
-        if (node.x > right.x) right = node;
-      });
-      this.height = right.x - left.x + this.margin.top + this.margin.bottom;
-      // define transition
-      // TODO transition
-      const transition = this.svg
-        .transition()
-        .duration(this.duration)
-        .attr('viewBox', [
-          -this.margin.left,
-          left.x - this.margin.top,
-          this.width,
-          this.height,
-        ])
-        .tween(
-          'resize',
-          window.ResizeObserver ? null : () => () => this.svg.dispatch('toggle')
-        );
-
+      // transition setting
+      const transition = this.svg.transition().duration(this.duration);
       // Update the nodes…
       const node = this.gNode.selectAll('g').data(nodes, (d) => d.id);
 
@@ -409,7 +392,7 @@ export default {
       const nodeEnter = node
         .enter()
         .append('g')
-        .attr('transform', `translate(${source.x0},${source.y0})`)
+        .attr('transform', this.sourceDirection(source))
         .attr('fill-opacity', 0)
         .attr('stroke-opacity', 0)
         .on('click', (d) => {
@@ -436,7 +419,6 @@ export default {
         .attr('dy', '.31em')
         .attr('class', 'nodeText')
         .attr('text-anchor', (d) => (d._children ? 'end' : 'start'))
-        .style('writing-mode', 'tb-rl')
         .text((d) => d.data.name)
         .attr('font-size', this.nodeLabel.fontSize)
         .attr('font-family', this.nodeLabel.fontFamily)
@@ -452,7 +434,7 @@ export default {
       node
         .merge(nodeEnter)
         .transition(transition)
-        .attr('transform', (d) => `translate(${d.x},${d.y})`)
+        .attr('transform', (d) => this.nodeDirection(d))
         .attr('fill-opacity', 1)
         .attr('stroke-opacity', 1);
 
@@ -461,7 +443,7 @@ export default {
         .exit()
         .transition(transition)
         .remove()
-        .attr('transform', `translate(${source.x},${source.y})`)
+        .attr('transform', this.sourceDirection(source))
         .attr('fill-opacity', 0)
         .attr('stroke-opacity', 0);
 
@@ -516,6 +498,80 @@ export default {
           default:
             break;
         }
+      }
+    },
+    sourceDirection(source) {
+      switch (this.treeLayout.direction) {
+        case 'left':
+          return `translate(${source.y0},${source.x0})`;
+        case 'top':
+          return `translate(${source.x0},${source.y0})`;
+        case 'bottom':
+          return `translate(${-source.x0},${-source.y0})`;
+        case 'right':
+          return `translate(${-source.y0},${-source.x0})`;
+        default:
+          return `translate(${source.y0},${source.x0})`;
+      }
+    },
+    nodeDirection(d) {
+      switch (this.treeLayout.direction) {
+        case 'left':
+          return `translate(${d.y},${d.x})`;
+        case 'top':
+          return `translate(${d.x},${d.y})`;
+        case 'bottom':
+          return `translate(${-d.x},${-d.y})`;
+        case 'right':
+          return `translate(${-d.y},${-d.x})`;
+        default:
+          return `translate(${d.y},${d.x})`;
+      }
+    },
+    linkDirection() {
+      switch (this.treeLayout.direction) {
+        case 'left':
+          this.linkH = d3
+            .linkHorizontal()
+            .x((d) => d.y)
+            .y((d) => d.x);
+          break;
+        case 'top':
+          this.linkH = d3
+            .linkVertical()
+            .x((d) => d.x)
+            .y((d) => d.y);
+          break;
+        case 'right':
+          this.linkH = d3
+            .linkHorizontal()
+            .x((d) => -d.y)
+            .y((d) => -d.x);
+          break;
+        case 'bottom':
+          this.linkH = d3
+            .linkVertical()
+            .x((d) => -d.x)
+            .y((d) => -d.y);
+          break;
+        default:
+          this.linkH = d3
+            .linkHorizontal()
+            .x((d) => d.y)
+            .y((d) => d.x);
+          break;
+      }
+    },
+    writeMode() {
+      switch (this.treeLayout.direction) {
+        case 'left':
+          return 'horizontal-tb';
+        case 'top':
+          return 'vertical-lr';
+        case 'bottom':
+          return 'vertical-lr';
+        default:
+          return 'horizontal-tb';
       }
     },
   },
