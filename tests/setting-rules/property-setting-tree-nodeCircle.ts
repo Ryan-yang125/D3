@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2021-01-03 19:39:17
- * @LastEditTime: 2021-01-03 19:59:12
+ * @LastEditTime: 2021-01-04 18:58:15
  * @LastEditors: Please set LastEditors
  * @Description: In User Settings Edit
  * @FilePath: /code/tests/setting-rules/property-setting-tree-nodeCircle.ts
@@ -11,13 +11,13 @@ export default {
     type: 'number',
     title: '节点大小',
     default: 5,
-    values: [2, 12],
+    values: [1, 12],
   },
   nodeCircleBorderWidth: {
     type: 'number',
     title: '节点边框宽度',
     default: 2,
-    values: [1, 4],
+    values: [1, 10],
   },
   nodeCircleBorderColor: {
     type: 'color',
